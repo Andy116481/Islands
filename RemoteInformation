@@ -1,0 +1,17 @@
+local Islands = {
+	RemoteNames = {
+        
+	},
+    RemoteArgNames = {
+        Blocks = {
+            ["BLOCK_PLACE_BRACKET"] = "ppaxezwBkafcobZijdc",
+            ["BLOCK_PLACE_RANDOM"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwWquabfytenrtqwrbqkmiezqOGxzbhz",
+        },
+        Crops = {
+            ["CROP_HARVEST_BRACKET"] = "aseohlgdRgMu",
+            ["CROP_HARVEST_RANDOM"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\negavtyrhQxRoqagwoheifpdWjDkpxYlpk",
+        },
+    },
+}
+
+return Islands

@@ -160,7 +160,9 @@ local Toggle = Farming:CreateToggle({
 						if not getgenv().FarmCrops then return end
 						if not SickleFarm then
 							if (HumanoidRootPart.Position - crop.Position).Magnitude > 28 then
-								Teleport(crop.CFrame)
+								task.spawn(function()
+									Teleport(crop.CFrame)
+								end)
 							end
 
 							if not getgenv().FarmCrops then return end

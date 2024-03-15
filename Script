@@ -1,0 +1,305 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- VARIABLES
+
+-- ReplicatedStorage
+local _NetManaged = ReplicatedStorage["rbxts_include"]["node_modules"]["@rbxts"].net["out"]["_NetManaged"]
+
+-- Misc
+local UUID = HttpService:GenerateGUID(false)
+
+-- Player
+local Client = Players.LocalPlayer
+local Character = Client.Character
+local Head = Character.Head
+local HumanoidRootPart = Character.HumanoidRootPart
+
+
+
+function GetIsland()
+	local Island = nil
+	for _,v in pairs(workspace:GetDescendants()) do
+		if v.Name == tostring(Client.UserId) then
+			return v.Parent.Parent
+		end
+	end
+	return Island
+end
+
+local IslandName = GetIsland()
+
+function randomString()
+	local length = math.random(10,20)
+	local array = {}
+	for i = 1, length do
+		array[i] = string.char(math.random(32, 126))
+	end
+	return table.concat(array)
+end
+
+function AnythingAboveCharacter(height)
+	local ray = Ray.new(Head.Position, Vector3.new(0, tonumber(height) ,0))
+	local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {Character})
+	if hit then
+		return true
+	else
+		return false
+	end
+end
+
+function GetNearestOre(selected)
+	local Ore, Distance = nil, math.huge
+	for _,v in pairs(workspace.WildernessBlocks:GetChildren()) do
+		if v.Name == "rock".. selected then
+			local mag = (HumanoidRootPart.Position - v.Position).Magnitude
+			if mag < Distance then
+				Distance = mag
+				Ore = v
+			end
+		end
+	end
+	return Ore
+end
+
+function Teleport(Location)
+	local Speed = 25
+	local TweenService = game:GetService("TweenService")
+	local Distance = (HumanoidRootPart.Position - Location.Position).Magnitude
+	local Time = Distance / Speed
+	local Tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(Time, Enum.EasingStyle.Linear), {CFrame = Location})
+	Tween:Play()
+	Tween.Completed:Connect(function()
+		return Tween
+	end)
+end
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+	Title = "Electron Islands!"; 
+	Text = "Successfully Executed!"; 
+	Icon = "http://www.roblox.com/asset/?id=8739339261"; 
+	Duration = 5;
+	Callback = function()
+		
+	end;
+	Button1 = "Like";  
+	Button2 = "Dislike";
+})
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local GUI = Rayfield:CreateWindow({
+	Name = "Islands",
+	LoadingTitle = "Islands Script",
+	LoadingSubtitle = "by Bloons1000",
+	ConfigurationSaving = {
+	   Enabled = false,
+	   FolderName = nil, -- Create a custom folder for your hub/game
+	   FileName = "Big Hub"
+	},
+	Discord = {
+	   Enabled = false,
+	   Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+	   RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+	},
+	KeySystem = false, -- Set this to true to use our key system
+	KeySettings = {
+	   Title = "Untitled",
+	   Subtitle = "Key System",
+	   Note = "No method of obtaining the key is provided",
+	   FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+	   SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+	   GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+	   Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+	}
+})
+
+-- TABS
+local Farming = GUI:CreateTab("Farming")
+local Settings = GUI:CreateTab("Settings")
+
+local CropSection = Farming:CreateSection("Crops")
+
+local SickleFarm = false
+local Toggle = Farming:CreateToggle({
+	Name = "Sickle Farm",
+	CurrentValue = false,
+	Flag = "SickleFarming",
+	Callback = function(Value)
+		SickleFarm = Value
+	end,
+})
+
+local SelectedCrop
+local Dropdown = Farming:CreateDropdown({
+	Name = "Crop Selection",
+	Options = {"Wheat", "Radish", "Onion", "Carrot", "Watermelon", "Pumpkin", "Spinach", "Tomato", "Potato", "Pineapple"},
+	CurrentOption = {""},
+	MultipleOptions = false,
+	Flag = "Crop_Selection",
+	Callback = function(SelectedOption)
+		for _,v in pairs(SelectedOption) do
+			SelectedCrop = v:lower()
+		end
+	end,
+})
+
+local Toggle = Farming:CreateToggle({
+	Name = "Crop Farm",
+	CurrentValue = false,
+	Flag = "Crop_Farm",
+	Callback = function(Value)
+		getgenv().FarmCrops = Value
+		task.spawn(function()
+			while task.wait() do
+				if not getgenv().FarmCrops then return end
+				for _,crop in pairs(IslandName.Blocks:GetChildren()) do
+					if crop.Name == SelectedCrop:lower() and crop.stage.Value == 3 then
+						if not getgenv().FarmCrops then return end
+						if not SickleFarm then
+							if (HumanoidRootPart.Position - crop.Position).Magnitude > 28 then
+								Teleport(crop.CFrame)
+							end
+
+							if not getgenv().FarmCrops then return end
+							_NetManaged["CLIENT_HARVEST_CROP_REQUEST"]:InvokeServer({
+                                ["bodufrnsdwLmUodabHgvxhlgeTbhiAt"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwVenooHuPqpJuengafuwfjvhzb",
+                                ["player"] = Client,
+                                ["model"] = crop
+							})
+							task.wait()
+							_NetManaged["CLIENT_BLOCK_PLACE_REQUEST"]:InvokeServer({
+                                ["lFjp"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nphwfjsxjtfefmlbn",
+                                ["cframe"] = crop.CFrame,
+                                ["upperBlock"] = false,
+                                ["blockType"] = "wheat"
+							})
+						else
+							-- SICKLE FARM HERE
+						end
+					end
+				end
+			end
+		end)
+	end,
+})
+
+local MiningSection = Farming:CreateSection("Mining")
+
+local Label = Farming:CreateLabel("You need to either turn on pathfinding or go to the island of the ore!")
+
+local UsePathfinding
+local Toggle = Farming:CreateToggle({
+	Name = "Use Pathfinding",
+	CurrentValue = false,
+	Flag = "UsePathFinding",
+	Callback = function(Value)
+		UsePathfinding = Value
+	end,
+})
+
+local SelectedOre
+local Dropdown = Farming:CreateDropdown({
+	Name = "Ore Selection",
+	Options = {"Stone", "Iron", "Coal", "Clay", "Gold", "Electrite", "Marble", "Diorite", "Granite", "Slate"},
+	CurrentOption = {""},
+	MultipleOptions = false,
+	Flag = "Dropdown1",
+	Callback = function(Value)
+		for _,v in pairs(Value) do
+			SelectedOre = v
+		end
+	end,
+})
+
+local Toggle = Farming:CreateToggle({
+	Name = "Ore Farm",
+	CurrentValue = false,
+	Flag = "Ore_Farming", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+	Callback = function(Value)
+		getgenv().OreFarming = Value
+		task.spawn(function()
+			while task.wait() do
+				if not getgenv().OreFarming then return end
+				if UsePathfinding then
+					
+				else
+					if not getgenv().OreFarming then return end
+					for _,ore in pairs(workspace.WildernessBlocks:GetChildren()) do
+						if ore.Name == "rock".. SelectedOre then
+							--repeat task.wait()
+								local nearest = GetNearestOre(SelectedOre)
+								if not getgenv().OreFarming then return end
+								if (HumanoidRootPart.Position - ore.Position).Magnitude > 20 then
+									Teleport(nearest.CFrame + Vector3.new(0,5,0))
+								end
+								_NetManaged["CLIENT_BLOCK_HIT_REQUEST"]:InvokeServer({
+									["block"] = nearest,
+									["qXoZmxzakyWqcv"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\ngsgegkmPCRcmlnDit",
+								})
+							--until not SelectedOre or not SelectedOre.Parent or not getgenv().OreFarming
+						end
+					end
+				end
+			end
+		end)
+	end,
+})
+
+local CropSection = Farming:CreateSection("Wood")
+
+local SelectedWood
+local Dropdown = Farming:CreateDropdown({
+	Name = "Crop Selection",
+	Options = {"Oak", "Birch", "Pine", "Maple", "Hickory"},
+	CurrentOption = {""},
+	MultipleOptions = false,
+	Flag = "Wood_Selection",
+	Callback = function(SelectedOption)
+		for _,v in pairs(SelectedOption) do
+			SelectedWood = v:lower()
+		end
+	end,
+})
+
+local Toggle = Farming:CreateToggle({
+	Name = "Crop Farm",
+	CurrentValue = false,
+	Flag = "Crop_Farm",
+	Callback = function(Value)
+		getgenv().FarmCrops = Value
+		task.spawn(function()
+			while task.wait() do
+				if not getgenv().FarmCrops then return end
+				for _,crop in pairs(IslandName.Blocks:GetChildren()) do
+					if crop.Name == SelectedCrop:lower() and crop.stage.Value == 3 then
+						if not getgenv().FarmCrops then return end
+						if SickleFarm == false then
+							if (HumanoidRootPart.Position - crop.Position).Magnitude > 23 then
+								Teleport(crop.CFrame)
+							end
+
+							if not getgenv().FarmCrops then return end
+							_NetManaged["CLIENT_HARVEST_CROP_REQUEST"]:InvokeServer({
+                                ["bodufrnsdwLmUodabHgvxhlgeTbhiAt"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwVenooHuPqpJuengafuwfjvhzb",
+                                ["player"] = Client,
+                                ["model"] = crop
+							})
+							task.wait()
+							_NetManaged["CLIENT_BLOCK_PLACE_REQUEST"]:InvokeServer({
+                                ["lFjp"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nphwfjsxjtfefmlbn",
+                                ["cframe"] = crop.CFrame,
+                                ["upperBlock"] = false,
+                                ["blockType"] = "wheat"
+							})
+						else
+							-- SICKLE FARM HERE
+						end
+					end
+				end
+			end
+		end)
+	end,
+})

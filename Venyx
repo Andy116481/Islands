@@ -1,4 +1,6 @@
-local player = game:GetService("Players").LocalPlayer
+-- venyx ui lib reuploaded by me
+-- init
+local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 
 -- services
@@ -8,11 +10,10 @@ local run = game:GetService("RunService")
 local tween = game:GetService("TweenService")
 local tweeninfo = TweenInfo.new
 
-local UUID = HttpService:GenerateGUID(true)
-getgenv().UIName = UUID
+local UIName = math.random(1,20).. HttpService:GenerateGUID(false)
 
-if game.CoreGui:FindFirstChild(getgenv().UIName) then
-    game.CoreGui[getgenv().UIName]:Destroy()
+if game.CoreGui:FindFirstChild(UIName) then
+	game.CoreGui[UIName]:Destroy()
 end
 
 -- additional

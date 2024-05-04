@@ -10,12 +10,6 @@ local run = game:GetService("RunService")
 local tween = game:GetService("TweenService")
 local tweeninfo = TweenInfo.new
 
-local UIName = math.random(1,20).. HttpService:GenerateGUID(false)
-
-if game.CoreGui:FindFirstChild(UIName) then
-	game.CoreGui[UIName]:Destroy()
-end
-
 -- additional
 local utility = {}
 
@@ -221,7 +215,7 @@ do
 	
 	function library.new(title)
 		local container = utility:Create("ScreenGui", {
-			Name = getgenv().UIName,
+			Name = title,
 			Parent = game.CoreGui
 		}, {
 			utility:Create("ImageLabel", {

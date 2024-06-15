@@ -4,26 +4,27 @@ local PathfindingService = game:GetService("PathfindingService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- VARIABLES
-
 -- ReplicatedStorage
 local _NetManaged = ReplicatedStorage["rbxts_include"]["node_modules"]["@rbxts"].net["out"]["_NetManaged"]
+if not _NetManaged then return warn("_NetManaged Location is nil, game updated!") end
+local CLIENT_HARVEST_CROP_REQUEST = _NetManaged["CLIENT_HARVEST_CROP_REQUEST"]
 
 -- Misc
 local UUID = HttpService:GenerateGUID(false)
 
 -- Player
 local Client = Players.LocalPlayer
-local Character = Client.Character
-local Head = Character.Head
-local HumanoidRootPart = Character.HumanoidRootPart
-
-
+local Character = Client.Character or Client.CharacterAdded:Wait()
+local Head = Character:FindFirstChild("Head")
+local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 
 function GetIsland()
 	local Island = nil
 	for _,v in pairs(workspace:GetDescendants()) do
 		if v.Name == tostring(Client.UserId) then
+			if v.Parent.Parent.ClassName ~= "Model" then
+				return warn("Island model isn't a model, game updated!")
+			end
 			return v.Parent.Parent
 		end
 	end
@@ -31,9 +32,11 @@ function GetIsland()
 end
 
 local IslandName = GetIsland()
+local IslandBlocks = IslandName.Blocks
+local IslandDrops = IslandBlocks.Drops
 
-function randomString()
-	local length = math.random(10,20)
+function RandomString(len1, len2)
+	local length = math.random(len1,len2)
 	local array = {}
 	for i = 1, length do
 		array[i] = string.char(math.random(32, 126))
@@ -41,8 +44,8 @@ function randomString()
 	return table.concat(array)
 end
 
-function AnythingAboveCharacter(height)
-	local ray = Ray.new(Head.Position, Vector3.new(0, tonumber(height) ,0))
+function AnythingAboveCharacter()
+	local ray = Ray.new(Head.Position, Vector3.new(0,math.huge,0))
 	local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {Character})
 	if hit then
 		return true
@@ -65,6 +68,19 @@ function GetNearestOre(selected)
 	return Ore
 end
 
+function GetNearestReadyCrop(crop)
+	local Crop, Distance = nil, math.huge
+	for _,v in IslandName.Blocks:GetChildren() do
+		if v.Name == crop:lower() and crop.stage.Value == 3 then
+			local mag = (HumanoidRootPart.Position - crop.Position).Magnitude
+			if mag < Distance then
+				Distance = mag
+				Crop = v
+			end
+		end
+	end
+end
+
 function Teleport(Location)
 	local Speed = 25
 	local TweenService = game:GetService("TweenService")
@@ -72,19 +88,23 @@ function Teleport(Location)
 	local Time = Distance / Speed
 	local Tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(Time, Enum.EasingStyle.Linear), {CFrame = Location})
 	Tween:Play()
+	local BodyVelocity = Instance.new("BodyVelocity", HumanoidRootPart)
+	BodyVelocity.Name = RandomString(10, 15)
+	BodyVelocity.MaxForce = Vector3.new(1,1,1) * 9e9
+	BodyVelocity.P = 3000
+	BodyVelocity.Velocity = Vector3.new()
+
 	Tween.Completed:Connect(function()
-		return Tween
+		BodyVelocity.Parent = nil
 	end)
 end
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-	Title = "Electron Islands!"; 
+	Title = "Electron Islands!";
 	Text = "Successfully Executed!"; 
 	Icon = "http://www.roblox.com/asset/?id=8739339261"; 
 	Duration = 5;
-	Callback = function()
-		
-	end;
+	Callback = nil;
 	Button1 = "Like";  
 	Button2 = "Dislike";
 })
@@ -155,33 +175,27 @@ local Toggle = Farming:CreateToggle({
 		task.spawn(function()
 			while task.wait() do
 				if not getgenv().FarmCrops then return end
-				for _,crop in pairs(IslandName.Blocks:GetChildren()) do
-					if crop.Name == SelectedCrop:lower() and crop.stage.Value == 3 then
-						if not getgenv().FarmCrops then return end
-						if not SickleFarm then
-							if (HumanoidRootPart.Position - crop.Position).Magnitude > 28 then
-								task.spawn(function()
-									Teleport(crop.CFrame)
-								end)
-							end
-
-							if not getgenv().FarmCrops then return end
-							_NetManaged["CLIENT_HARVEST_CROP_REQUEST"]:InvokeServer({
-                                ["bodufrnsdwLmUodabHgvxhlgeTbhiAt"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwVenooHuPqpJuengafuwfjvhzb",
-                                ["player"] = Client,
-                                ["model"] = crop
-							})
-							task.wait()
-							_NetManaged["CLIENT_BLOCK_PLACE_REQUEST"]:InvokeServer({
-                                ["lFjp"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nphwfjsxjtfefmlbn",
-                                ["cframe"] = crop.CFrame,
-                                ["upperBlock"] = false,
-                                ["blockType"] = "wheat"
-							})
-						else
-							-- SICKLE FARM HERE
-						end
+				if not SickleFarm then
+					local nearest = GetNearestOre(SelectedCrop) -- Part of the wheat;
+					if (HumanoidRootPart.Position - nearest.Position).Magnitude > 28 then
+						Teleport(nearest.CFrame)
 					end
+
+					if not getgenv().FarmCrops then return end
+					_NetManaged["CLIENT_HARVEST_CROP_REQUEST"]:InvokeServer({
+						["bodufrnsdwLmUodabHgvxhlgeTbhiAt"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwVenooHuPqpJuengafuwfjvhzb",
+						["player"] = Client,
+						["model"] = nearest
+					})
+					task.wait()
+					_NetManaged["CLIENT_BLOCK_PLACE_REQUEST"]:InvokeServer({
+						["lFjp"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nphwfjsxjtfefmlbn",
+						["cframe"] = nearest.CFrame,
+						["upperBlock"] = false,
+						["blockType"] = tostring(nearest.Name)
+					})
+				else
+					-- SICKLE FARM HERE
 				end
 			end
 		end)
@@ -254,9 +268,9 @@ local CropSection = Farming:CreateSection("Wood")
 
 local SelectedWood
 local Dropdown = Farming:CreateDropdown({
-	Name = "Crop Selection",
+	Name = "Wood Selection",
 	Options = {"Oak", "Birch", "Pine", "Maple", "Hickory"},
-	CurrentOption = {""},
+	CurrentOption = {"Oak"},
 	MultipleOptions = false,
 	Flag = "Wood_Selection",
 	Callback = function(SelectedOption)
@@ -267,39 +281,25 @@ local Dropdown = Farming:CreateDropdown({
 })
 
 local Toggle = Farming:CreateToggle({
-	Name = "Crop Farm",
+	Name = "Wood Farm",
 	CurrentValue = false,
-	Flag = "Crop_Farm",
+	Flag = "Wood_Farm",
 	Callback = function(Value)
-		getgenv().FarmCrops = Value
+		getgenv().FarmWood = Value
 		task.spawn(function()
 			while task.wait() do
-				if not getgenv().FarmCrops then return end
-				for _,crop in pairs(IslandName.Blocks:GetChildren()) do
-					if crop.Name == SelectedCrop:lower() and crop.stage.Value == 3 then
-						if not getgenv().FarmCrops then return end
-						if SickleFarm == false then
-							if (HumanoidRootPart.Position - crop.Position).Magnitude > 23 then
-								Teleport(crop.CFrame)
-							end
-
-							if not getgenv().FarmCrops then return end
-							_NetManaged["CLIENT_HARVEST_CROP_REQUEST"]:InvokeServer({
-                                ["bodufrnsdwLmUodabHgvxhlgeTbhiAt"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nwVenooHuPqpJuengafuwfjvhzb",
-                                ["player"] = Client,
-                                ["model"] = crop
-							})
-							task.wait()
-							_NetManaged["CLIENT_BLOCK_PLACE_REQUEST"]:InvokeServer({
-                                ["lFjp"] = "\7\240\159\164\163\240\159\164\161\7\n\7\n\7\nphwfjsxjtfefmlbn",
-                                ["cframe"] = crop.CFrame,
-                                ["upperBlock"] = false,
-                                ["blockType"] = "wheat"
-							})
-						else
-							-- SICKLE FARM HERE
-						end
+				if not getgenv().FarmWood then return end
+				for _,wood in pairs(IslandName.Blocks:GetChildren()) do
+					if SelectedWood == "Oak" then
+						SelectedWood = "tree1"
 					end
+						if not getgenv().FarmWood then return end
+
+						if (HumanoidRootPart.Position - SelectedWood.Position).Magnitude > 23 then
+							Teleport(crop.CFrame)
+						end
+
+
 				end
 			end
 		end)
